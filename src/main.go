@@ -111,32 +111,47 @@ func disconnect(client *rpc2.Client) {
 }
 
 func clientGetReadyandAssignTask(client *rpc2.Client, res *string) error { //TODO sql
-	stmt, err := db.Prepare(`UPDATE ...`)
+	stmt, err := db.Prepare(`UPDATE ...`) //where 啥的加上
 	ec.CheckError(err, "Prepare sql: ")
-	_, err = stmt.Exec("ready")
+	_, err = stmt.Exec("ready") //加 where 的参数
 	ec.CheckError(err, "Client get ready: ")
 
-	for _, v := range clients {
+	var clientKey string
+	for k, v := range clients {
 		if v.Client == client {
 			v.IsReady = true
+			clientKey = k
 			break
 		}
 	}
 
 	var reply string
 	client.Call("sendTask", &common.Args{}, &reply) //TODO 添加参数内容
-	fmt.Println("Send task: ", reply)
+	fmt.Println("Send task: ", reply)               //reply 的内容应为任务的地址
 
-	mutex.Lock()
+	var find bool
+	mutex.Lock() //TODO 后续可优化为 sync.Map
 	for _, v := range taskRunners {
 		if v.IsReady == true {
+			find = true
 			v.IsReady = false
 			v.Client.Call("getTask", &common.Args{}, &reply) //TODO 添加参数内容
+
+			_, err = stmt.Exec("running") //加 where 的参数
+			ec.CheckError(err, "Running task: ")
+
 			fmt.Println("Get task: ", reply)
 			break
 		}
 	}
 	mutex.Unlock()
+	if find {
+		clients[clientKey].IsReady = false
+		*res = "ok"
+	} else {
+		fmt.Println("Do not find ready task runner")
+		*res = "fail"
+	}
 
 	return nil
 }
@@ -153,5 +168,7 @@ func taskRunnerGetReady(client *rpc2.Client, args *common.Args, res *string) err
 			break
 		}
 	}
+
+	*res = "ok"
 	return nil
 }
