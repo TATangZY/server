@@ -141,10 +141,27 @@ func clientGetReadyandAssignTask(client *rpc2.Client, res *string) error { //TOD
 			ec.CheckError(err, "Running task: ")
 
 			fmt.Println("Get task: ", reply)
+
+			switch reply {
+			case "ok":
+				{
+
+				}
+			case "docker time out":
+				{
+
+				}
+			case "error":
+				{
+
+				}
+			}
+
 			break
 		}
 	}
 	mutex.Unlock()
+
 	if find {
 		clients[clientKey].IsReady = false
 		*res = "ok"

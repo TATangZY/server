@@ -7,4 +7,5 @@ type Register struct {
 
 //Args 通用参数
 type Args struct {
+	Hash string
 }
