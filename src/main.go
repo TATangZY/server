@@ -136,6 +136,7 @@ func clientGetReadyandAssignTask(client *rpc2.Client, res *string) error { //TOD
 			find = true
 			v.IsReady = false
 			v.Client.Call("getTask", &common.Args{}, &reply) //TODO 添加参数内容
+			mutex.Unlock()
 
 			_, err = stmt.Exec("running") //加 where 的参数
 			ec.CheckError(err, "Running task: ")
@@ -143,9 +144,13 @@ func clientGetReadyandAssignTask(client *rpc2.Client, res *string) error { //TOD
 			fmt.Println("Get task: ", reply)
 
 			switch reply {
-			case "ok":
+			default:
 				{
-
+					_, err = stmt.Exec("finish")
+					ec.CheckError(err, "Task finish")
+					var clientReply string
+					client.Call("taskFinish", &common.Args{Hash: reply}, &clientReply)
+					fmt.Println("Submit result: ", clientReply)
 				}
 			case "docker time out":
 				{
@@ -158,9 +163,10 @@ func clientGetReadyandAssignTask(client *rpc2.Client, res *string) error { //TOD
 			}
 
 			break
+		} else {
+			mutex.Unlock()
 		}
 	}
-	mutex.Unlock()
 
 	if find {
 		clients[clientKey].IsReady = false
